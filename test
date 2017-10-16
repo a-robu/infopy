@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+if [ ! -d "venv" ]; then
+    ./makevenv
+fi
+
+. venv/bin/activate
+pytest infopy.py -v

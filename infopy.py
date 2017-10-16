@@ -140,6 +140,12 @@ class P:
         return P({(trigger, outcome): p * px[trigger]
                   for trigger, outcome, p in self.cond_items()})
 
+    def given(self, px):
+        ''' Takes P(Y|X) and P(X) and returns P(Y) '''
+        pxy = self.to_joint(px)
+        py = pxy.marginalize(keep=1)
+        return py
+
     def marginalize(self, keep=0):
         ''' Computes P(X) = Σ_y P(X,Y) '''
         result = collections.defaultdict(int)
@@ -240,6 +246,9 @@ class TestP:
             ('sunny', 'dry'): 0.9 * 0.8
         })
         assert cond.to_joint(p_weather) == expected, 'hand calculation'
+
+    def test_given(self):
+        assert P({'rains': {'wet': 1}}).given({'rains': 1}) == P({'wet': 1})
 
     def test_swap(self):
         assert P({('cat', 'dog'): 1}).swap() == P({('dog', 'cat'): 1})
