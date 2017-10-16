@@ -9,7 +9,7 @@
 # Testing
 
 ```bash
-# ./makevenv
-# . venv/bin/activate
-# pytest infopy.py
+$ ./makevenv
+$ . venv/bin/activate
+$ pytest infopy.py
 ```
