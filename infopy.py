@@ -140,7 +140,7 @@ class P:
         return P({(trigger, outcome): p * px[trigger]
                   for trigger, outcome, p in self.cond_items()})
 
-    def given(self, px):
+    def when(self, px):
         ''' Takes P(Y|X) and P(X) and returns P(Y) '''
         pxy = self.to_joint(px)
         py = pxy.marginalize(keep=1)
@@ -247,8 +247,8 @@ class TestP:
         })
         assert cond.to_joint(p_weather) == expected, 'hand calculation'
 
-    def test_given(self):
-        assert P({'rains': {'wet': 1}}).given({'rains': 1}) == P({'wet': 1})
+    def test_when(self):
+        assert P({'rains': {'wet': 1}}).when({'rains': 1}) == P({'wet': 1})
 
     def test_swap(self):
         assert P({('cat', 'dog'): 1}).swap() == P({('dog', 'cat'): 1})
