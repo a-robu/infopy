@@ -88,6 +88,7 @@ class P:
             self._given_domain = set(domain)
         if (not isinstance(pick_one(self.probs), numbers.Real) and
                 not isinstance(pick_one(self.probs), P)):
+            # If it's a conditional, then fix the nested Ps
             self.distribution = {event: P(p) for event, p in self}
 
     @property
@@ -187,6 +188,32 @@ class P:
     def filter(self, byx=lambda _: True, byp=lambda _: True):
         return P({x: p for (x, p) in dict(self).items() if byx(x) and byp(p)})
 
+    @property
+    def matrix(self):
+        pass
+
+    @property
+    def row_key(self):
+        ''' Creates a mapping to ints for all events in the input space. '''
+        ordered_domain = sorted(self.domain)
+        return {event: ordered_domain.index(event) for event in ordered_domain}
+
+    def unsparse(self):
+        raise Exception('remember to also write the test')
+
+    @property
+    def column_key(self):
+        ''' Create a mapping to ints for all events in the target space. '''
+        unsparsed = self.unsparse()
+        target_space = unsparsed[pick_one(unsparsed.domain)].domain
+
+    @staticmethod
+    def from_map(deterministic):
+        d = {}
+        for state, action in deterministic.items():
+            d[state] = {action: 1}
+        return P(d)
+
 class TestP:
     def test_from_list(self):
         assert P([0.1, 0.2, 0.7]).domain == {0, 1, 2}
@@ -196,7 +223,8 @@ class TestP:
         assert P([0.2, 0.8]) == P([0.2, 0.8])
         assert P([0.2, 0.8]) != P([0.8, 0.2]), 'order matters'
         assert P([0.2, 0.8]) != P([0.2, 0.8, 0]), 'zeroes matter'
-        assert P([0.2, 0.8]) != P([0.2, 0.8, 0]), 'zeroes matter'
+        assert P([[0, 1], [1, 0]]) == P([[0, 1], [1, 0]]), 'works on a conditional'
+        assert P([[0, 1], [0.5, 0.5]]) != P([[0, 1], [1, 0]]), 'works on a conditional'
 
     def test_probs(self):
         assert sorted(P({'a': 0.6, 'b': 0.4}).probs) == sorted([0.4, 0.6])
@@ -271,6 +299,30 @@ class TestP:
         assert list(actual) == [
             ('is_angry', 'mistake', 1)
         ]
+
+    def test_row_key(self):
+        example = P({'a': 0.5, 'b': 0.5})
+        actual = example.row_key
+        assert 'a' in actual and 'b' in actual
+        assert len(set(actual.keys())) == 2, 'the generated indices are unique'
+
+    def test_column_key(self):
+        key = P([{'x': 0.4, 'y': 0.6}, {'x': 0.4, 'z': 0.6}]).column_key
+        assert 'x' in key and 'y' in key and 'z' in key, 'has all keys'
+        assert len(set(key.keys())) == 3, 'indices are  unique'
+
+    @skip
+    def test_matrix(self):
+        example = P({'a': {'x': 0.4, 'y': 0.6}, 'x': {'z': 1}})
+        m = example.matrix
+        r_key = example.row_key
+        c_key = example.column_key
+        assert m[r_key['a']][c_key['y']] == 0.6
+        assert m[r_key['x']][c_key['z']] == 1
+
+
+    def test_from_map(self):
+        assert P.from_map({0: 1, 1: 0}) == P({0: P({1: 1}), 1: P({0: 1})})
 
 @as_distribution
 def ev(px, f=lambda e, p: e):
