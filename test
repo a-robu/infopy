@@ -5,4 +5,4 @@ if [ ! -d "venv" ]; then
 fi
 
 . venv/bin/activate
-pytest infopy.py -v
+pytest infopy.py labeled_matrix.py -v

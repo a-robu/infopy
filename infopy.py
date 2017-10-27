@@ -306,7 +306,9 @@ class TestP:
         assert 'a' in actual and 'b' in actual
         assert len(set(actual.keys())) == 2, 'the generated indices are unique'
 
+    @skip
     def test_column_key(self):
+        raise Exception('maybe dont do this')
         key = P([{'x': 0.4, 'y': 0.6}, {'x': 0.4, 'z': 0.6}]).column_key
         assert 'x' in key and 'y' in key and 'z' in key, 'has all keys'
         assert len(set(key.keys())) == 3, 'indices are  unique'
