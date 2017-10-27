@@ -2,6 +2,7 @@ import collections
 import math
 import numbers
 import pytest
+import labeled_matrix
 skip = pytest.mark.skip
 
 def as_distribution(f):
@@ -90,6 +91,39 @@ class P:
                 not isinstance(pick_one(self.probs), P)):
             # If it's a conditional, then fix the nested Ps
             self.distribution = {event: P(p) for event, p in self}
+
+    @property
+    def codomain(self):
+        accum = set()
+        for _, pdist in self:
+            for e, _ in pdist:
+                accum.add(e)
+        return accum
+
+    def __contains__(self, e):
+        if isinstance(self.distribution, dict):
+            return e in self.distribution
+        raise NotImplementedError('other fundamental types')
+
+    def fill_cond(self):
+        ''' Fill with zeroes any missing outputs. '''
+        result = {cause: {} for cause, _ in self}
+        codomain = self.codomain # precompute
+        # FIXME google if codomain is ok name for outcome domain
+        for cause, _ in self:
+            for outcome in codomain:
+                result[cause][outcome] = (self[cause][outcome] if outcome in
+                    self[cause] else 0)
+        return P(result)
+
+    @property
+    def matrix(self):
+        domain = self.domain
+        codomain = self.codomain
+        full = self.fill_cond()
+        return labeled_matrix.M(
+            [[full[cause][effect] for effect in codomain]
+                for cause in domain], domain, codomain)
 
     @property
     def domain(self):
@@ -189,10 +223,6 @@ class P:
         return P({x: p for (x, p) in dict(self).items() if byx(x) and byp(p)})
 
     @property
-    def matrix(self):
-        pass
-
-    @property
     def row_key(self):
         ''' Creates a mapping to ints for all events in the input space. '''
         ordered_domain = sorted(self.domain)
@@ -215,6 +245,10 @@ class P:
         return P(d)
 
 class TestP:
+    def test_in(self):
+        assert 'a' in P({'a': 1})
+        assert not 'b' in P({'a': 1})
+
     def test_from_list(self):
         assert P([0.1, 0.2, 0.7]).domain == {0, 1, 2}
         assert P([0.1, 0.2, 0.7])[1] == 0.2
@@ -300,28 +334,23 @@ class TestP:
             ('is_angry', 'mistake', 1)
         ]
 
-    def test_row_key(self):
-        example = P({'a': 0.5, 'b': 0.5})
-        actual = example.row_key
-        assert 'a' in actual and 'b' in actual
-        assert len(set(actual.keys())) == 2, 'the generated indices are unique'
+    def test_codomain(self):
+        example = P({'a': {'x': 0.4, 'y': 0.6}, 'x': {'z': 1}})
+        assert example.codomain == set(['x', 'y', 'z'])
 
-    @skip
-    def test_column_key(self):
-        raise Exception('maybe dont do this')
-        key = P([{'x': 0.4, 'y': 0.6}, {'x': 0.4, 'z': 0.6}]).column_key
-        assert 'x' in key and 'y' in key and 'z' in key, 'has all keys'
-        assert len(set(key.keys())) == 3, 'indices are  unique'
+    def test_fill_cond(self):
+        example = P({'a': {'x': 0.4, 'y': 0.6}, 'x': {'z': 1}})
+        actual = example.fill_cond()
+        expected = P({
+            'a': {'x': 0.4, 'y': 0.6, 'z': 0},
+            'x': {'x': 0, 'y': 0, 'z': 1}
+        })
+        assert actual == expected
 
-    @skip
     def test_matrix(self):
         example = P({'a': {'x': 0.4, 'y': 0.6}, 'x': {'z': 1}})
-        m = example.matrix
-        r_key = example.row_key
-        c_key = example.column_key
-        assert m[r_key['a']][c_key['y']] == 0.6
-        assert m[r_key['x']][c_key['z']] == 1
-
+        assert set(example.matrix.row_symbols) == set('ax')
+        assert set(example.matrix.column_symbols) == set('xyz')
 
     def test_from_map(self):
         assert P.from_map({0: 1, 1: 0}) == P({0: P({1: 1}), 1: P({0: 1})})
