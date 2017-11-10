@@ -87,6 +87,7 @@ class P:
             self.distribution = px
         if domain:
             self._given_domain = set(domain)
+        assert self.probs, "We need some numbers in px, don't we?"
         if (not isinstance(pick_one(self.probs), numbers.Real) and
                 not isinstance(pick_one(self.probs), P)):
             # If it's a conditional, then fix the nested Ps
@@ -117,13 +118,28 @@ class P:
         return P(result)
 
     @property
-    def matrix(self):
-        domain = self.domain
-        codomain = self.codomain
+    def square(self):
+        ''' Fill with zeroes any missing outputs. '''
+        result = {cause: {} for cause, _ in self}
+        all_events = self.domain | self.codomain
+        return P({cause: {
+                outcome: (self[cause][outcome] if
+                    cause in self and outcome in self[cause] else 0)
+                for outcome in all_events
+            } for cause in all_events})
+
+    @property
+    def labeled_matrix(self):
+        domain = list(self.domain) # Creates an ordering
+        codomain = list(self.codomain) # Creates an ordering
         full = self.fill_cond()
         return labeled_matrix.M(
             [[full[cause][effect] for effect in codomain]
                 for cause in domain], domain, codomain)
+    
+    @property
+    def matrix(self):
+        return self.labeled_matrix._matrix
 
     @property
     def domain(self):
@@ -172,7 +188,8 @@ class P:
     def to_joint(self, px):
         ''' Returns P(X,Y) if self is P(Y|X) and the argument is P(X). '''
         px = P(px)
-        return P({(trigger, outcome): p * px[trigger]
+        get = lambda p, key: p[key] if key in p.domain else 0
+        return P({(trigger, outcome): p * get(px, trigger)
                   for trigger, outcome, p in self.cond_items()})
 
     def when(self, px):
@@ -308,6 +325,10 @@ class TestP:
             ('sunny', 'dry'): 0.9 * 0.8
         })
         assert cond.to_joint(p_weather) == expected, 'hand calculation'
+        assert P({
+            'expected': {'goodness': 1}, 
+            'junk': {'junkyness': 1}
+        }).when({'expected': 1})['goodness']
 
     def test_when(self):
         assert P({'rains': {'wet': 1}}).when({'rains': 1}) == P({'wet': 1})
@@ -347,22 +368,31 @@ class TestP:
         })
         assert actual == expected
 
-    def test_matrix(self):
+    def test_labeled_matrix(self):
         example = P({'a': {'x': 0.4, 'y': 0.6}, 'x': {'z': 1}})
-        assert set(example.matrix.row_symbols) == set('ax')
-        assert set(example.matrix.column_symbols) == set('xyz')
+        assert set(example.labeled_matrix.row_symbols) == set('ax')
+        assert set(example.labeled_matrix.column_symbols) == set('xyz')
+        assert hasattr(example.labeled_matrix.row_symbols, "__getitem__")
+        assert hasattr(example.labeled_matrix.column_symbols, "__getitem__")
 
     def test_from_map(self):
         assert P.from_map({0: 1, 1: 0}) == P({0: P({1: 1}), 1: P({0: 1})})
 
+    def test_square(self):
+        actual = P({0: {1: 1}, 1: {1: 1}}).square
+        expected = P({0: {0: 0, 1: 1}, 1: {0: 0, 1: 1}})
+        assert actual == expected
+
 @as_distribution
 def ev(px, f=lambda e, p: e):
     '''
-    Computes the expected value E[x] given a probability distribution
+    Computes the expected value E[x] given a probability distribution.
 
     If given a function px, then the domain argument is required.
     '''
-    return sum([f(e, p) * p for e, p in px.filter(byp=positive)])
+    filtered = px.filter(byp=positive)
+    assert list(filtered), 'px must have numbers in it besides zeroes!'
+    return sum([f(e, p) * p for e, p in filtered])
 
 def test_ev():
     assert ev({4: 0.5, 5: 0.5}) == 4.5
@@ -480,3 +510,4 @@ def test_cond_h():
         (1, 0): 0.5 * 0.6, (1, 1): 0.5 * 0.6 # p(y|x) = [0.5, 0.5], h = 1, p(x) = 0.6
     })
     assert cond_h(pxy) == 0.6
+
