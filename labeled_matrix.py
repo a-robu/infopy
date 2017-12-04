@@ -34,6 +34,18 @@ class M():
             reordered[new_i] = list(self._matrix.row(old_i))
         return M(reordered, new_ordering, self.column_symbols)
 
+    def __add__(self, other):
+        if (self.column_symbols == other.column_symbols and
+            self.row_symbols == other.row_symbols):
+            return M(
+                self._matrix + other._matrix, 
+                self.row_symbols,
+                self.column_symbols
+            )
+        else:
+            raise NotImplementedError("Code won't work for " +
+                "differently labeled matrices.")
+
     def __mul__(self, other):
         ''' Implements matrix multiplication with labeled rows and cols. '''
         if isinstance(other, M):
@@ -47,14 +59,24 @@ class M():
         if isinstance(other, numbers.Number):
             return M(self._matrix * other, self.row_symbols, self.column_symbols)
 
+    def __rmul__(self, other):
+        ''' This should only happen when other is not a M. So a number. '''
+        return self * other
+
     def __str__(self):
         return "M('{}', {}, {})".format(
             self._matrix, repr(self.row_symbols), repr(self.column_symbols)
         )
     
-    def __rmul__(self, other):
-        ''' This should only happen when other is not a M. So a number. '''
-        return self * other
+    def is_square(self):
+        return self._matrix.is_square()
+
+    def det(self):
+        return self._matrix.det()
+
+    @property
+    def numcols(self):
+        return self._matrix.numcols
 
 class TestM():
     def test_auto_matrix(self):
@@ -94,4 +116,9 @@ class TestM():
         # The result will have A's row_symbols and B's column_symbols.
         assertSequenceEqual(actual.row_symbols, 'AB')
         assertSequenceEqual(actual.column_symbols, 'CD')
+        flip = M('0 1\n1 0')
+        assert flip * flip == M('1 0\n0 1')
+
+    def test_add_matrix(self):
+        assert M('1') + M('1') == M('2')
 
