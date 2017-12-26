@@ -3,6 +3,7 @@ import math
 import numbers
 import pytest
 import labeled_matrix
+from pymatrix import Matrix
 skip = pytest.mark.skip
 
 def as_distribution(f):
@@ -83,6 +84,8 @@ class P:
             self.distribution = px.distribution
             if callable(px.distribution):
                 self._given_domain = px.domain
+        elif isinstance(px, Matrix):
+            self.distribution = list(px.col(0))
         else: # Otherwise, wrap the list or dict or etc...
             self.distribution = px
         if domain:
@@ -269,6 +272,9 @@ class TestP:
     def test_from_list(self):
         assert P([0.1, 0.2, 0.7]).domain == {0, 1, 2}
         assert P([0.1, 0.2, 0.7])[1] == 0.2
+
+    def test_from_matrix(self):
+        assert P(Matrix.from_list([[0.4], [0.2], [0.1]])) == P([0.4, 0.2, 0.1])
 
     def test_equality(self):
         assert P([0.2, 0.8]) == P([0.2, 0.8])
