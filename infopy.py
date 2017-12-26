@@ -3,7 +3,7 @@ import math
 import numbers
 import pytest
 import labeled_matrix
-from pymatrix import Matrix
+from pymatrix import Matrix, matrix
 skip = pytest.mark.skip
 
 def as_distribution(f):
@@ -516,4 +516,22 @@ def test_cond_h():
         (1, 0): 0.5 * 0.6, (1, 1): 0.5 * 0.6 # p(y|x) = [0.5, 0.5], h = 1, p(x) = 0.6
     })
     assert cond_h(pxy) == 0.6
+
+def spike(px_len, i):
+    distribution = [0] * px_len
+    distribution[i] = 1
+    return colvec(distribution)
+
+def test_spike():
+    assert matrix('0 \n 0 \n 1 \n 0') == spike(4, 2)
+
+def colvec(l):
+    return Matrix.from_list([l]).trans()
+
+def test_colvec():
+    assert matrix([
+        [0.3],
+        [0.5],
+        [0.2]
+    ]) == colvec([0.3, 0.5, 0.2])
 
