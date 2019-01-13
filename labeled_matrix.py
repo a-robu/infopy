@@ -1,9 +1,7 @@
 import numbers
 import unittest
-import pytest
 import pymatrix
 assertSequenceEqual = unittest.TestCase('__init__').assertSequenceEqual
-skip = pytest.mark.skip
 
 class M():
     ''' A matrix whose indices can be any hashable objects. ''' 

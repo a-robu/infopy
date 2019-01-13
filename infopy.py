@@ -1,10 +1,8 @@
 import collections
 import math
 import numbers
-import pytest
 import labeled_matrix
 from pymatrix import Matrix, matrix
-skip = pytest.mark.skip
 
 def as_distribution(f):
     ''' Decorator. Convert the first argument into a P distribution. '''
