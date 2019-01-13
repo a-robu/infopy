@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='infopy',
-    version='1.7.0',
+    version='1.8.0',
     py_modules=['infopy', 'labeled_matrix'],
     install_requires=[
         'pytest==3.2.2',
