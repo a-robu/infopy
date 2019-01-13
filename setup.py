@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='infopy',
-    version='1.6.0',
+    version='1.7.0',
     py_modules=['infopy'],
     install_requires=[
         'pytest==3.2.2',
